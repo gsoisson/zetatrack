@@ -62,12 +62,19 @@ function zetaLogCallback(logDetails) {
     }
 
     // Count only completed problems (last entry often has timeMs = -1 / incomplete)
-    const score = arr.filter((x) => (x?.timeMs ?? -1) >= 0).length;
+    const completed = arr.filter((x) => (x?.timeMs ?? -1) >= 0);
+    const score = completed.length;
     const ts = Date.now();
 
-    console.log(`Zetalog: score=${score}`);
+    const stats = computeStats(completed);
+    const { keystrokeErrorRate, attemptErrorRate } = computeErrorRates(completed, score);
 
-    addValuesToSheet(ts, score)
+    console.log(
+      `Zetalog: score=${score} keystrokeErrorRate=${keystrokeErrorRate} attemptErrorRate=${attemptErrorRate}`,
+      stats
+    );
+
+    addValuesToSheet(ts, score, keystrokeErrorRate, attemptErrorRate, stats)
       .then((res) => console.log("Webhook status:", res.status))
       .catch((err) => {
         console.error(err);
@@ -79,12 +86,65 @@ function zetaLogCallback(logDetails) {
   }
 }
 
+// ---------- Stats ----------
+function detectOp(problem) {
+  if (typeof problem !== "string") return null;
+  if (problem.includes("+")) return "add";
+  if (problem.includes("\u00d7") || problem.includes("*")) return "mul";
+  if (problem.includes("\u00f7") || problem.includes("/")) return "div";
+  // "-" last so it doesn't catch negative-looking things in other ops
+  if (problem.includes("-")) return "sub";
+  return null;
+}
+
+function computeErrorRates(completed, score) {
+  let totalErrors = 0;
+  let wrongAttempts = 0;
+  for (const x of completed) {
+    const typed = Array.isArray(x?.entry) ? x.entry.length : 0;
+    const expected = String(x?.answer ?? "").length;
+    const errs = Math.max(0, typed - expected);
+    totalErrors += errs;
+    if (errs > 0) wrongAttempts += 1;
+  }
+  const keyDenom = score + totalErrors;
+  const keystrokeErrorRate = keyDenom ? Number((totalErrors / keyDenom).toFixed(4)) : 0;
+  const attemptErrorRate = score ? Number((wrongAttempts / score).toFixed(4)) : 0;
+  return { keystrokeErrorRate, attemptErrorRate };
+}
+
+function computeStats(completed) {
+  const buckets = { add: [], sub: [], mul: [], div: [] };
+  for (const x of completed) {
+    const op = detectOp(x?.problem);
+    if (op && Number.isFinite(x?.timeMs)) buckets[op].push(x);
+  }
+  const mean = (xs) =>
+    xs.length ? Math.round(xs.reduce((s, e) => s + e.timeMs, 0) / xs.length) : "";
+
+  const top3 = [...completed]
+    .filter((x) => Number.isFinite(x?.timeMs))
+    .sort((a, b) => b.timeMs - a.timeMs)
+    .slice(0, 3)
+    .map((x) => x.problem);
+
+  return {
+    meanAdd: mean(buckets.add),
+    meanSub: mean(buckets.sub),
+    meanMul: mean(buckets.mul),
+    meanDiv: mean(buckets.div),
+    top1: top3[0] ?? "",
+    top2: top3[1] ?? "",
+    top3: top3[2] ?? "",
+  };
+}
+
 // ---------- Webhook writer ----------
 const WEB_APP_URL =
-  "https://script.google.com/macros/s/AKfycbwz4qmbKrslzgk4qMeP9wC_QtVxzKiykypgKw0WalRmQvEZpsv1WYcdovu2oTy4ZrH_sw/exec";
+  "https://script.google.com/macros/s/AKfycbyFiI8Hsp2eQ5UzAESkrbvP2qIPmdpLEIZSICsd-BsYSc8MIsCYDdaPpqtYOVxH1MaQ/exec";
 const SECRET = "choose-a-long-random-string"; // must match Apps Script
 
-function addValuesToSheet(ts, score) {
+function addValuesToSheet(ts, score, keystrokeErrorRate, attemptErrorRate, stats) {
   return new Promise((resolve, reject) => {
     chrome.storage.sync.get(["zetatrackSheetId"], (res) => {
       const sheetId = res.zetatrackSheetId;
@@ -93,7 +153,15 @@ function addValuesToSheet(ts, score) {
       fetch(WEB_APP_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoid preflight
-        body: JSON.stringify({ ts, score, sheetId, secret: SECRET }),
+        body: JSON.stringify({
+          ts,
+          score,
+          keystrokeErrorRate,
+          attemptErrorRate,
+          sheetId,
+          secret: SECRET,
+          ...stats,
+        }),
       })
         .then((r) => {
           // Optional: surface non-200 errors

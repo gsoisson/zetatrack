@@ -16,12 +16,12 @@
    },
    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAh28L4vnHZVF2ZNkAqEwICyPnXB62abAeLZvFIrrAZYW/hyZ2gE2LRrG79JCGxY6qTHwwDwkwhGAVNgm8vQxw12IAp9uQQgRm8YNedFZJOwSQ4kiDDmMRnyGBQin2+8/cFRWE0hFaoJ3MslFVz2UL3DA4+RdnuhT/uliRqQqUkT2V+eZphHEJ31B19Hldjzgdu7eBlMYAeq4UJclIXLR5ehhzpnbpe+FQ9uigI0fa7O6F3nGedODW6m8Op6c+DsBdDdVP8hj+ErSysuUN7fH3xjKO61fxgmPNhWKcFjmvtBtA0jEJnolpdI/fQD1XxDcyYkV2BtnpixyHD8j70SWUtwIDAQAB",
    "manifest_version": 3,
-   "name": "Zetatrack-dev",
+   "name": "Zetatrack",
    "oauth2": {
       "client_id": "1098917380926-1klaelmmtbc0gasrg1p7dnlglonnlc5b.apps.googleusercontent.com",
       "scopes": [ "openid", "email", "profile", "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/spreadsheets" ]
    },
    "permissions": [ "identity", "webRequest", "storage", "scripting" ],
    "update_url": "https://clients2.google.com/service/update2/crx",
-   "version": "1.0.0"
+   "version": "2.0.0"
 }
