@@ -10,7 +10,11 @@
       "service_worker": "background.js"
    },
    "description": "Track your zetamac progress in a google sheet!",
-   "host_permissions": [ "https://arithmetic.zetamac.com/*" ],
+   "host_permissions": [
+   "https://arithmetic.zetamac.com/*",
+   "https://script.google.com/*",
+   "https://script.googleusercontent.com/*"
+   ],
    "icons": {
       "128": "icon.png"
    },

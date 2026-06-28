@@ -152,7 +152,8 @@ function addValuesToSheet(ts, score, keystrokeErrorRate, attemptErrorRate, stats
 
       fetch(WEB_APP_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoid preflight
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
           ts,
           score,
@@ -163,15 +164,7 @@ function addValuesToSheet(ts, score, keystrokeErrorRate, attemptErrorRate, stats
           ...stats,
         }),
       })
-        .then((r) => {
-          // Optional: surface non-200 errors
-          if (!r.ok) {
-            return r.text().then((t) =>
-              reject(new Error(`Webhook failed (${r.status}): ${t || "no body"}`))
-            );
-          }
-          resolve(r);
-        })
+        .then(() => resolve({ status: "sent" }))
         .catch(reject);
     });
   });
